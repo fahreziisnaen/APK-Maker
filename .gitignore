@@ -9,7 +9,9 @@ storage/
 *.aab
 /tmp/
 .gradle/
-build/
+# Android build outputs only — jangan pakai "build/" karena match src/components/build/
+android-template/app/build/
+android-template/build/
 *.class
 .DS_Store
 Thumbs.db

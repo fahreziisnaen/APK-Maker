@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- INJECTED BY BUILD SYSTEM — do not edit manually -->
+    <string name="app_name">My App</string>
+    <string name="website_url">https://example.com</string>
+    <string name="custom_user_agent"></string>
+</resources>

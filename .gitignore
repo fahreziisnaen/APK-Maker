@@ -1,0 +1,15 @@
+node_modules/
+.next/
+.env
+.env.local
+*.db
+*.db-journal
+storage/
+*.apk
+*.aab
+/tmp/
+.gradle/
+build/
+*.class
+.DS_Store
+Thumbs.db

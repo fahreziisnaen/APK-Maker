@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- INJECTED BY BUILD SYSTEM -->
+<resources>
+    <bool name="enable_pull_to_refresh">true</bool>
+    <bool name="enable_offline_fallback">false</bool>
+    <bool name="enable_push_notifications">false</bool>
+</resources>

@@ -1,0 +1,4 @@
+#!/bin/sh
+# Gradle wrapper — regenerate with: gradle wrapper --gradle-version 8.6
+exec "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" "$@" 2>/dev/null || \
+  java -jar "$(dirname "$0")/gradle/wrapper/gradle-wrapper.jar" "$@"

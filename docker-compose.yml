@@ -1,0 +1,63 @@
+version: '3.9'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+
+  backend:
+    build: ./backend
+    ports:
+      - '4001:4001'
+    env_file: ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=file:/app/data/apkmaker.db
+    volumes:
+      - ./backend:/app
+      - apk_storage:/app/storage
+      - /app/node_modules
+    depends_on:
+      - redis
+
+  worker:
+    build: ./worker
+    env_file: ./backend/.env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=file:/app/data/apkmaker.db
+      - ANDROID_SDK_ROOT=/opt/android-sdk
+      - TEMPLATE_DIR=/app/android-template
+    volumes:
+      - ./worker:/app
+      - ./android-template:/app/android-template:ro
+      - apk_storage:/app/storage
+      - android_sdk:/opt/android-sdk
+      - gradle_cache:/root/.gradle
+      - /app/node_modules
+    depends_on:
+      - redis
+      - backend
+
+  frontend:
+    build: ./frontend
+    ports:
+      - '4000:4000'
+    environment:
+      - PORT=4000
+      - NEXT_PUBLIC_API_URL=http://localhost:4001
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    depends_on:
+      - backend
+
+volumes:
+  redis_data:
+  apk_storage:
+  android_sdk:
+  gradle_cache:

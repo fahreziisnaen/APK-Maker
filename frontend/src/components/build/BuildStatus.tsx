@@ -22,7 +22,7 @@ export function BuildStatus({ buildId }: { buildId: string }) {
   const { data: build, refetch } = useQuery<Build>({
     queryKey: ['build', buildId],
     queryFn: () => getBuild(buildId),
-    refetchInterval: (data) => isTerminal(data?.status) ? false : 3000,
+    refetchInterval: (query) => isTerminal(query.state.data?.status) ? false : 3000,
   });
 
   // SSE for real-time log streaming

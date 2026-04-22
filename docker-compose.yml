@@ -26,6 +26,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - ANDROID_SDK_ROOT=/opt/android-sdk
       - TEMPLATE_DIR=/app/android-template
+      - STORAGE_DIR=/app/storage
       - BACKEND_INTERNAL_URL=http://backend:4001
     volumes:
       - ./android-template:/app/android-template:ro

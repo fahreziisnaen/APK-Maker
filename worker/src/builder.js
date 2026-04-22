@@ -171,8 +171,11 @@ async function injectConfig(projectDir, config, buildId, appendLog) {
   const newPkgPath = path.join(appModuleDir, 'src/main/java', ...newPkgParts);
 
   if (fs.existsSync(oldPkgPath) && oldPkgPath !== newPkgPath) {
-    fs.mkdirSync(path.dirname(newPkgPath), { recursive: true });
-    fs.renameSync(oldPkgPath, newPkgPath);
+    // Move to a sibling temp path first to avoid src/dest overlap issues
+    const tmpPath = oldPkgPath + '_tmp';
+    fs.renameSync(oldPkgPath, tmpPath);
+    copyDirSync(tmpPath, newPkgPath);
+    fs.rmSync(tmpPath, { recursive: true, force: true });
   }
 
   // 5. Update package declaration in all Java/Kotlin files
@@ -268,11 +271,16 @@ function runGradle(projectDir, task, appendLog, buildId) {
       reject(new Error('Gradle build timed out'));
     }, parseInt(process.env.BUILD_TIMEOUT_MS) || 300_000);
 
+    // Gradle prints its "WHAT WENT WRONG" summary and javac errors to stdout
+    const stdoutLines = [];
     const stderrLines = [];
 
     proc.stdout.on('data', (data) => {
       const lines = data.toString().split('\n').filter(l => l.trim());
-      lines.forEach(line => appendLog(line).catch(() => {}));
+      lines.forEach(line => {
+        stdoutLines.push(line);
+        appendLog(line).catch(() => {});
+      });
     });
 
     proc.stderr.on('data', (data) => {
@@ -287,12 +295,39 @@ function runGradle(projectDir, task, appendLog, buildId) {
       clearTimeout(timeout);
       if (code === 0) { resolve(); return; }
 
-      // Extract "What went wrong" for a meaningful error message
-      const wwIdx = stderrLines.findIndex(l => l.includes('What went wrong'));
-      const summary = wwIdx >= 0
-        ? stderrLines.slice(wwIdx + 1, wwIdx + 6).join(' | ').trim()
-        : `Gradle exited with code ${code}`;
-      reject(new Error(summary || `Gradle exited with code ${code}`));
+      // 1. Look for javac "error:" lines (most specific)
+      const javacErrors = stdoutLines.filter(l => /:\s+error:/.test(l));
+      if (javacErrors.length > 0) {
+        reject(new Error(javacErrors.slice(0, 3).join(' | ')));
+        return;
+      }
+
+      // 2. Look for aapt2/resource errors
+      const aaptErrors = stdoutLines.filter(l => /error:/.test(l) && !l.includes('stderr'));
+      if (aaptErrors.length > 0) {
+        reject(new Error(aaptErrors.slice(0, 3).join(' | ')));
+        return;
+      }
+
+      // 3. Extract "What went wrong" section from stdout (Gradle prints it there)
+      const wwIdx = stdoutLines.findIndex(l => l.includes('What went wrong'));
+      if (wwIdx >= 0) {
+        const summary = stdoutLines.slice(wwIdx + 1, wwIdx + 6).join(' | ').trim();
+        reject(new Error(summary || `Gradle exited with code ${code}`));
+        return;
+      }
+
+      // 4. Fall back to stderr "What went wrong" section
+      const wwIdxErr = stderrLines.findIndex(l => l.includes('What went wrong'));
+      if (wwIdxErr >= 0) {
+        const summary = stderrLines.slice(wwIdxErr + 1, wwIdxErr + 6).join(' | ').trim();
+        reject(new Error(summary || `Gradle exited with code ${code}`));
+        return;
+      }
+
+      // 5. Last resort: last 5 non-empty stdout lines
+      const lastLines = stdoutLines.slice(-5).join(' | ');
+      reject(new Error(lastLines || `Gradle exited with code ${code}`));
     });
 
     proc.on('error', (err) => {

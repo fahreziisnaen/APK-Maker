@@ -193,7 +193,7 @@ router.patch('/:id/worker', async (req, res) => {
       const build = await prisma.build.findUnique({ where: { id: req.params.id }, select: { logs: true } });
       const lines = (build?.logs || '').split('\n').filter(Boolean);
       lines.push(log);
-      data.logs = lines.slice(-200).join('\n');
+      data.logs = lines.slice(-500).join('\n');
     }
 
     await prisma.build.update({ where: { id: req.params.id }, data });

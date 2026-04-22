@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -7,6 +7,89 @@ import { Loader2, Zap, ChevronDown, ChevronUp } from 'lucide-react';
 import { createBuild, BuildConfig } from '@/lib/api';
 import { ImageDropzone } from './ImageDropzone';
 import clsx from 'clsx';
+
+function MiniPhonePreview({ html }: { html: string }) {
+  return (
+    <div className="relative select-none flex-shrink-0" style={{ width: 160, height: 320 }}>
+      {/* Body */}
+      <div className="absolute inset-0 rounded-[32px] shadow-xl"
+        style={{ background: '#1a1a1a', border: '2px solid #2e2e2e' }} />
+      {/* Left buttons */}
+      <div className="absolute rounded-l-sm" style={{ left: -3, top: 56, width: 2, height: 18, background: '#444' }} />
+      <div className="absolute rounded-l-sm" style={{ left: -3, top: 80, width: 2, height: 28, background: '#444' }} />
+      {/* Right button */}
+      <div className="absolute rounded-r-sm" style={{ right: -3, top: 80, width: 2, height: 40, background: '#444' }} />
+      {/* Screen */}
+      <div className="absolute overflow-hidden"
+        style={{ top: 8, left: 8, right: 8, bottom: 8, borderRadius: 24, background: '#fff' }}>
+        <iframe
+          srcDoc={html}
+          title="Offline page preview"
+          className="w-full h-full border-0"
+          style={{ pointerEvents: 'none' }}
+          sandbox="allow-scripts"
+        />
+      </div>
+      {/* Home indicator */}
+      <div className="absolute rounded-full"
+        style={{ bottom: 10, left: '50%', transform: 'translateX(-50%)', width: 48, height: 3, background: '#444' }} />
+    </div>
+  );
+}
+
+function OfflinePageEditor({
+  html, appName, themeColor, onChange, onReset,
+}: {
+  html: string;
+  appName: string;
+  themeColor: string;
+  onChange: (v: string) => void;
+  onReset: () => void;
+}) {
+  const rendered = useMemo(() => {
+    const color = /^#[0-9a-fA-F]{6}$/.test(themeColor) ? themeColor : '#2563EB';
+    return html
+      .replace(/\{\{APP_NAME\}\}/g, appName || 'App Name')
+      .replace(/\{\{THEME_COLOR\}\}/g, color);
+  }, [html, appName, themeColor]);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <label className="label mb-0" htmlFor="offlinePageHtml">Offline Page HTML</label>
+        <button type="button" className="text-xs text-brand-600 hover:underline" onClick={onReset}>
+          Reset to default
+        </button>
+      </div>
+
+      <div className="flex gap-4 items-start">
+        {/* Textarea */}
+        <div className="flex-1 min-w-0">
+          <textarea
+            id="offlinePageHtml"
+            className="input-base font-mono text-xs"
+            rows={14}
+            value={html}
+            onChange={(e) => onChange(e.target.value)}
+            spellCheck={false}
+          />
+          <p className="mt-1 text-xs text-slate-400">
+            Gunakan{' '}
+            <code className="bg-slate-200 px-1 rounded">{'{{APP_NAME}}'}</code> dan{' '}
+            <code className="bg-slate-200 px-1 rounded">{'{{THEME_COLOR}}'}</code>{' '}
+            sebagai placeholder dinamis.
+          </p>
+        </div>
+
+        {/* Live phone preview */}
+        <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
+          <p className="text-xs text-slate-400">Preview</p>
+          <MiniPhonePreview html={rendered} />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 interface PreviewState {
   url: string;
@@ -298,30 +381,13 @@ export function BuildForm({ onPreviewChange }: BuildFormProps = {}) {
               </div>
 
               {form.enableOfflineFallback && (
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="label mb-0" htmlFor="offlinePageHtml">Offline Page HTML</label>
-                    <button
-                      type="button"
-                      className="text-xs text-brand-600 hover:underline"
-                      onClick={() => set('offlinePageHtml', DEFAULT_OFFLINE_HTML)}
-                    >
-                      Reset to default
-                    </button>
-                  </div>
-                  <textarea
-                    id="offlinePageHtml"
-                    className="input-base font-mono text-xs"
-                    rows={12}
-                    value={form.offlinePageHtml}
-                    onChange={(e) => set('offlinePageHtml', e.target.value)}
-                    spellCheck={false}
-                  />
-                  <p className="mt-1 text-xs text-slate-400">
-                    Gunakan <code className="bg-slate-200 px-1 rounded">{'{{APP_NAME}}'}</code> dan{' '}
-                    <code className="bg-slate-200 px-1 rounded">{'{{THEME_COLOR}}'}</code> sebagai placeholder dinamis.
-                  </p>
-                </div>
+                <OfflinePageEditor
+                  html={form.offlinePageHtml || ''}
+                  appName={form.appName}
+                  themeColor={form.themeColor}
+                  onChange={(v) => set('offlinePageHtml', v)}
+                  onReset={() => set('offlinePageHtml', DEFAULT_OFFLINE_HTML)}
+                />
               )}
             </div>
           )}

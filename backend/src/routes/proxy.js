@@ -49,13 +49,32 @@ router.get('/', async (req, res) => {
     // Strip CSP meta tags (they block inline scripts/styles from the original page)
     html = html.replace(/<meta[^>]+http-equiv=["']?Content-Security-Policy["']?[^>]*>/gi, '');
 
-    // Inject <base href> + anti-framebusting override before anything else in <head>
+    // Inject at top of <head>:
+    // 1. <base href> — relative URLs resolve to origin
+    // 2. Anti-framebusting
+    // 3. Hide scrollbars
+    // 4. Intercept link clicks → route through proxy so navigation keeps working
     const injection =
       `<base href="${baseHref}">` +
-      `<script>(function(){try{` +
+      `<style>` +
+      `::-webkit-scrollbar{display:none}` +
+      `html,body{scrollbar-width:none;-ms-overflow-style:none}` +
+      `</style>` +
+      `<script>(function(){` +
+      `try{` +
       `Object.defineProperty(window,'top',{get:function(){return window.self;}});` +
       `Object.defineProperty(window,'parent',{get:function(){return window.self;}});` +
-      `}catch(e){}})();</script>`;
+      `}catch(e){}` +
+      `document.addEventListener('click',function(e){` +
+      `var a=e.target.closest('a');` +
+      `if(!a||!a.href)return;` +
+      `var url=a.href;` +
+      `if(!url.startsWith('http://')&&!url.startsWith('https://'))return;` +
+      `if(a.target==="_blank")return;` +
+      `e.preventDefault();e.stopPropagation();` +
+      `window.location.href='/api/proxy?url='+encodeURIComponent(url);` +
+      `},true);` +
+      `})();</script>`;
 
     html = /<head[^>]*>/i.test(html)
       ? html.replace(/<head[^>]*>/i, (m) => m + injection)

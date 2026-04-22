@@ -106,6 +106,7 @@ router.post('/', buildRateLimiter, upload.fields([
       enablePullToRefresh: build.enablePullToRefresh,
       enableOfflineFallback: build.enableOfflineFallback,
       buildAab: build.buildAab,
+      offlinePageHtml: body.offlinePageHtml || null,
     });
 
     await prisma.build.update({ where: { id: buildId }, data: { jobId } });

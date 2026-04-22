@@ -17,6 +17,7 @@ export interface BuildConfig {
   buildAab: boolean;
   icon?: File;
   splash?: File;
+  offlinePageHtml?: string;
 }
 
 export interface Build {
@@ -44,6 +45,7 @@ export async function createBuild(config: BuildConfig): Promise<{ id: string; st
   form.append('enablePushNotifications', String(config.enablePushNotifications));
   form.append('buildAab', String(config.buildAab));
   if (config.userAgent) form.append('userAgent', config.userAgent);
+  if (config.offlinePageHtml) form.append('offlinePageHtml', config.offlinePageHtml);
   if (config.icon) form.append('icon', config.icon);
   if (config.splash) form.append('splash', config.splash);
 

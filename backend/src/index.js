@@ -7,6 +7,7 @@ const fs = require('fs');
 const { logger } = require('./utils/logger');
 const buildsRouter = require('./routes/builds');
 const eventsRouter = require('./routes/events');
+const proxyRouter = require('./routes/proxy');
 
 const app = express();
 const PORT = process.env.PORT || 4001;
@@ -31,6 +32,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 app.use('/api/builds', buildsRouter);
 app.use('/api/events', eventsRouter);
+app.use('/api/proxy', proxyRouter);
 
 // Health check
 app.get('/api/health', (req, res) => {

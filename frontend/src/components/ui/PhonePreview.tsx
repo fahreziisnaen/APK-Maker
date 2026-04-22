@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
-import { Smartphone, RefreshCw, ExternalLink, AlertCircle } from 'lucide-react';
+import { Smartphone, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface PhonePreviewProps {
   url: string;
@@ -18,15 +18,18 @@ function isValidHttpUrl(s: string) {
   }
 }
 
+function proxyUrl(url: string) {
+  return `/api/proxy?url=${encodeURIComponent(url)}`;
+}
+
 export function PhonePreview({ url, themeColor = '#2563EB', appName, iconSrc }: PhonePreviewProps) {
   const [activeUrl, setActiveUrl] = useState('');
   const [iframeKey, setIframeKey] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'loading' | 'loaded' | 'blocked'>('idle');
-  const loadStartRef = useRef(0);
+  const [status, setStatus] = useState<'idle' | 'loading' | 'loaded'>('idle');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const blockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Debounce URL changes 900 ms
+  // Debounce URL changes 900ms
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!isValidHttpUrl(url)) {
@@ -37,35 +40,21 @@ export function PhonePreview({ url, themeColor = '#2563EB', appName, iconSrc }: 
     debounceRef.current = setTimeout(() => {
       setActiveUrl(url);
       setStatus('loading');
-      loadStartRef.current = Date.now();
       setIframeKey((k) => k + 1);
     }, 900);
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [url]);
 
-  // 7-second timeout → blocked (site never fired onLoad)
+  // 15-second safety timeout
   useEffect(() => {
     if (status !== 'loading') return;
-    if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
-    blockTimerRef.current = setTimeout(() => setStatus('blocked'), 7000);
-    return () => { if (blockTimerRef.current) clearTimeout(blockTimerRef.current); };
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => setStatus('loaded'), 15000);
+    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, [iframeKey, status]);
-
-  const handleIframeLoad = () => {
-    if (blockTimerRef.current) clearTimeout(blockTimerRef.current);
-    const elapsed = Date.now() - loadStartRef.current;
-    // X-Frame-Options blocked frames load their error page in < 300 ms.
-    // Real sites take longer; treat suspiciously fast loads as blocked.
-    if (elapsed < 350) {
-      setStatus('blocked');
-    } else {
-      setStatus('loaded');
-    }
-  };
 
   const reload = () => {
     setStatus('loading');
-    loadStartRef.current = Date.now();
     setIframeKey((k) => k + 1);
   };
 
@@ -83,7 +72,6 @@ export function PhonePreview({ url, themeColor = '#2563EB', appName, iconSrc }: 
 
   const barColor = themeColor?.startsWith('#') && themeColor.length === 7 ? themeColor : '#2563EB';
   const titleBarColor = darken(barColor);
-
   const contentTop = 28 + (appName || activeUrl ? 42 : 0);
 
   return (
@@ -143,7 +131,7 @@ export function PhonePreview({ url, themeColor = '#2563EB', appName, iconSrc }: 
               </div>
             )}
 
-            {/* Loading spinner — rendered ABOVE the iframe using absolute + z */}
+            {/* Loading spinner — above iframe */}
             {status === 'loading' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-2">
                 <div className="h-7 w-7 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin" />
@@ -151,31 +139,16 @@ export function PhonePreview({ url, themeColor = '#2563EB', appName, iconSrc }: 
               </div>
             )}
 
-            {/* Blocked */}
-            {status === 'blocked' && (
-              <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-50 px-6 text-center">
-                <AlertCircle size={32} className="text-amber-400" />
-                <div>
-                  <p className="text-xs font-semibold text-slate-700">Preview blocked</p>
-                  <p className="mt-1 text-xs text-slate-400 leading-relaxed">
-                    Site blocks embedding — your APK will open it natively in Android WebView.
-                  </p>
-                </div>
-                <a href={activeUrl} target="_blank" rel="noopener noreferrer"
-                  className="flex items-center gap-1 text-xs text-blue-500 hover:underline">
-                  <ExternalLink size={11} /> Open in browser
-                </a>
-              </div>
-            )}
-
-            {/* Iframe — always below spinner; hidden while loading to prevent Chrome's
-                broken-frame icon from peeking through */}
+            {/* Iframe via proxy — no X-Frame-Options issues */}
             {(status === 'loading' || status === 'loaded') && activeUrl && (
               <iframe
                 key={iframeKey}
-                src={activeUrl}
+                src={proxyUrl(activeUrl)}
                 title="Website preview"
-                onLoad={handleIframeLoad}
+                onLoad={() => {
+                  if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                  setStatus('loaded');
+                }}
                 className="absolute inset-0 w-full h-full border-0"
                 style={{
                   opacity: status === 'loaded' ? 1 : 0,
@@ -205,10 +178,6 @@ export function PhonePreview({ url, themeColor = '#2563EB', appName, iconSrc }: 
           </a>
         </div>
       )}
-
-      <p className="text-xs text-slate-400 text-center" style={{ maxWidth: 220 }}>
-        Some sites block embedding — the APK always opens them natively
-      </p>
     </div>
   );
 }

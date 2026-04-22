@@ -15,6 +15,60 @@ interface PreviewState {
   iconSrc?: string;
 }
 
+const DEFAULT_OFFLINE_HTML = `<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fc;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+    .box {
+      background: #fff;
+      width: 100%;
+      max-width: 360px;
+      padding: 32px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    .title { font-size: 24px; font-weight: bold; color: #2b2b2b; margin-bottom: 8px; }
+    .subtitle { font-size: 14px; color: #777; margin-bottom: 20px; }
+    .msg { font-size: 15px; color: #444; margin-bottom: 24px; line-height: 1.5; }
+    .btn {
+      background: {{THEME_COLOR}};
+      color: #fff;
+      padding: 12px 28px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    .footer { font-size: 12px; color: #888; margin-top: 24px; }
+  </style>
+</head>
+<body>
+  <div class="box">
+    <h1 class="title">Tidak Ada Koneksi</h1>
+    <p class="subtitle">{{APP_NAME}}</p>
+    <p class="msg">Pastikan koneksi internet kamu aktif,<br>lalu coba muat ulang halaman.</p>
+    <button class="btn" onclick="location.reload()">Coba Lagi</button>
+    <div class="footer">&copy; <span id="y"></span> {{APP_NAME}}</div>
+  </div>
+  <script>document.getElementById('y').textContent = new Date().getFullYear();</script>
+</body>
+</html>`;
+
 const DEFAULT_VALUES: BuildConfig = {
   appName: '',
   packageName: '',
@@ -25,6 +79,7 @@ const DEFAULT_VALUES: BuildConfig = {
   enableOfflineFallback: false,
   enablePushNotifications: false,
   buildAab: false,
+  offlinePageHtml: DEFAULT_OFFLINE_HTML,
 };
 
 interface BuildFormProps {
@@ -241,6 +296,33 @@ export function BuildForm({ onPreviewChange }: BuildFormProps = {}) {
                 />
                 <p className="mt-1 text-xs text-slate-400">Appended to the default WebView user-agent string</p>
               </div>
+
+              {form.enableOfflineFallback && (
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="label mb-0" htmlFor="offlinePageHtml">Offline Page HTML</label>
+                    <button
+                      type="button"
+                      className="text-xs text-brand-600 hover:underline"
+                      onClick={() => set('offlinePageHtml', DEFAULT_OFFLINE_HTML)}
+                    >
+                      Reset to default
+                    </button>
+                  </div>
+                  <textarea
+                    id="offlinePageHtml"
+                    className="input-base font-mono text-xs"
+                    rows={12}
+                    value={form.offlinePageHtml}
+                    onChange={(e) => set('offlinePageHtml', e.target.value)}
+                    spellCheck={false}
+                  />
+                  <p className="mt-1 text-xs text-slate-400">
+                    Gunakan <code className="bg-slate-200 px-1 rounded">{'{{APP_NAME}}'}</code> dan{' '}
+                    <code className="bg-slate-200 px-1 rounded">{'{{THEME_COLOR}}'}</code> sebagai placeholder dinamis.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

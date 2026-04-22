@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Offline</title>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6fc;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .box {
+      background: #fff;
+      width: 100%;
+      max-width: 360px;
+      padding: 32px;
+      border-radius: 10px;
+      text-align: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    .title {
+      font-size: 26px;
+      font-weight: bold;
+      color: #2b2b2b;
+      margin-bottom: 8px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #777;
+      margin-bottom: 24px;
+    }
+
+    .icon {
+      width: 90px;
+      margin-bottom: 20px;
+      opacity: .9;
+    }
+
+    .msg {
+      font-size: 15px;
+      color: #444;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .btn {
+      display: inline-block;
+      background: #2b7cff;
+      color: #fff;
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: bold;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .btn:hover { background: #1f64d0; }
+
+    .footer {
+      font-size: 12px;
+      color: #888;
+      margin-top: 25px;
+    }
+
+    .dev {
+      margin-top: 18px;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .dev img {
+      width: 120px;
+      margin-top: 6px;
+      opacity: 0.9;
+    }
+
+  </style>
+</head>
+<body>
+
+  <div class="box">
+
+    <img class="icon" src="data:image/svg+xml;utf8,
+      <svg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 24 24' fill='none' stroke='%232b7cff' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'>
+        <path d='M3 16v-2a6 6 0 0112 0v2'/>
+        <path d='M21 16v-2a9 9 0 00-18 0v2'/>
+        <path d='M8 21h8'/>
+      </svg>" />
+
+    <h1 class="title">Offline</h1>
+    <p class="subtitle">Tidak dapat terhubung ke server</p>
+
+    <p class="msg">
+      Pastikan koneksi internet kamu aktif.<br>
+      Coba muat ulang halaman.
+    </p>
+
+    <a class="btn" href="#" onclick="location.reload(); return false;">Coba Lagi</a>
+
+    <div class="footer">
+      &copy; <span id="year"></span> — EXACONET.<br><br>
+      Developed by &nbsp 
+      <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADgAAAAQCAMAAAB0p0x3AAACLlBMVEVHcEzh4eHY2dt2dnbBwsJ3d3eZdGgZGBmPj4+io6Obm5sVFRXY2dubm5vMzcywsbB9XFKlpaW8vL2Ki4u9vr6am5vHyMmJiYmBgYGMiYcjHx6foKCcnJyie2/Z2dvMzc6Hh4c5NDLMzs+vsbBYTkq8u7u8vb5+fn6JiYl5eXnY2NqxsbGrrKzY2dusrKywsLDBwcK9vr6io6KLi4vNz8+dnp0SERGbm5vY2do6LyycnJwbGRkgHR0lISFDNDDKy8x5eXkYEhInIyLHyMnQ0dLZ2twfHRweGxrHyMmIiYmhoaFMOzZOQT3U1dY9LSuAgIAaGBduUUpYRT/GyMlxXlguIyFiTkqBgYGenp7LzM3S09W0tLV7e3t9fX1/f3+Njo12dna6urqzs7N8fHzP0NHHyMmxsbHKy8ubm5uXl5eenp6KiopaRT8iHx+Sk5KytLMqJiWNbGBbQDuUaV98fHwcGRk5NDLX2NqxsrLFxsfDxMMxLSyPj499YFZ/f4CVdGiRb2R5c26IgHqelpCoqKh8fHyPj4+hoaG/v8B5eXmwsrHGx8jLzc6KioqGhoaam5q6u7ycnJx/f3+qq6smIiLKy8yKi4tMREK8k4bJysxmS0QsJSSthHaMaV+CYVkoJCRtTkaviHudeGyqfnK4j4LGm441Kik7NDNBOjlTQz5ZSEN7WE/Fl4xqUkyngnU7MTDbsKLPo5ZfQzxPNS/LoJS8ioJ0VU0jFhSod3DluKvVMd5DAAAAiXRSTlMAAuKnCJb+BicYwBXk3guF/ocaicTHYz3w7s1R8P4+6+XP9bJhEtXiaohJNu/c5ElOoDzXm8Qz6rFB/Gfu9ji0kwvZqii9VXZRoZVPPdTAwBCLnPv9LXFjbDx2Yl4xeKmd5MrDMe2Tz7E21V++k1FzsfKM6u6M8H3Y2iO4X7H70fnD/f5Z6cR7fXD7oUUAAAJnSURBVCjPlZL3VxpBEMcPvFAsQIBYsQL2FktiNPYWe+/pPab33qugEPT0TnqVImJP+e8yc4Dv5eWnfN7b2e98Z/bt3u0SBMDveJmdnd3fOUb8H/zOJ3SApmlbS13zP0UO8nd2YNXVm7y0z+uz2ajbfLZ+5lCEpqSCGOB8wWkBtk7ERGmCLC6VotZoesO/SVH1HezCs3MRPr96FFF5+RyCHIj6c5eg69hJijL5Rh2BjU0bdQ+35JxbAFaAL5MrqDBNuUEIK8FaYGuy6EK/0yrZs3htLXHgCGf1en3CEeBrNyhF7HGItWmE4HpsLKv1CRXsUdd+mtZ/7O44Gf9a6iA4RcVLS0szaqFULVKCUpJiiMVFBIckybJS0KVl+EHN/eu7O+lWq4XZDpgeo5P4HciVy+XfpLmgjpbLMZJYmkLjQnn4H48zzpCb5wlueSz2B2hUzQPLMKanciDmYLjWhpWMPpCZpyKXo3K7eC6XY48xm11DkItq5leXl1eBmYxMUEhmIXaKGjGtit7rUMhq2TdbQ2Zz+sNeNNKSFxffdMlksgnhwGKY5CQsJOWhvBN9Dj3vLL/2g8y2wzncwD6AfJ1OlyVAJchCCUPXBdsIKkGk3Dx4R4Ov3R7P7y03T9ITNroNBkO1iN271mBQTCZArqggpNUwG2YPA5/Cpx17yzBBh2T9fgObqi9qNJqrrBSDeibFqFGSdzUHiPEae1WqYYndbjfyeCfY7stXtFptIiqyEVQr58VzmEYSW7VRRuC/jr9P+fhhdMNuNNp56bfYlYUlXG5JBippO5cbP00QT+NhrmmHGKavjfgDaCf2jebClEMAAAAASUVORK5CYII=" alt="" width="56" height="16" />
+    </div>
+
+  </div>
+
+  <script>
+    document.getElementById("year").textContent = new Date().getFullYear();
+  </script>
+
+</body>
+</html>

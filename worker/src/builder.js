@@ -195,6 +195,18 @@ async function injectConfig(projectDir, config, buildId, appendLog) {
 </resources>`;
   fs.writeFileSync(configXmlPath, configXml, 'utf8');
 
+  // 8. Offline page (assets/offline.html) — inject placeholders or use custom HTML
+  const assetsDir = path.join(appModuleDir, 'src/main/assets');
+  fs.mkdirSync(assetsDir, { recursive: true });
+  const offlineHtmlPath = path.join(assetsDir, 'offline.html');
+  let offlineHtml = (config.offlinePageHtml && config.offlinePageHtml.trim())
+    ? config.offlinePageHtml
+    : fs.readFileSync(offlineHtmlPath, 'utf8');
+  offlineHtml = offlineHtml
+    .replace(/\{\{APP_NAME\}\}/g, escapeHtml(config.appName))
+    .replace(/\{\{THEME_COLOR\}\}/g, /^#[0-9a-fA-F]{6}$/.test(config.themeColor) ? config.themeColor : '#2563EB');
+  fs.writeFileSync(offlineHtmlPath, offlineHtml, 'utf8');
+
   await appendLog(`Injected config: package=${config.packageName}, url=${config.websiteUrl}`);
 }
 
@@ -415,6 +427,15 @@ function escapeXml(str) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
+}
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 function darkenHex(hex) {

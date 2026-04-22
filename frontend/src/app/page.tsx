@@ -1,6 +1,6 @@
 import { Navbar } from '@/components/ui/Navbar';
 import { Hero } from '@/components/ui/Hero';
-import { BuildForm } from '@/components/form/BuildForm';
+import { BuildFormWithPreview } from '@/components/form/BuildFormWithPreview';
 import { BuildHistory } from '@/components/build/BuildHistory';
 import { HowItWorks } from '@/components/ui/HowItWorks';
 
@@ -11,8 +11,8 @@ export default function Home() {
       <main>
         <Hero />
         <section id="builder" className="py-16 px-4">
-          <div className="mx-auto max-w-3xl">
-            <BuildForm />
+          <div className="mx-auto max-w-6xl">
+            <BuildFormWithPreview />
           </div>
         </section>
         <HowItWorks />

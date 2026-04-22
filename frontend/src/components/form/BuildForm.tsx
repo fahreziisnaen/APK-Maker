@@ -8,6 +8,13 @@ import { createBuild, BuildConfig } from '@/lib/api';
 import { ImageDropzone } from './ImageDropzone';
 import clsx from 'clsx';
 
+interface PreviewState {
+  url: string;
+  themeColor: string;
+  appName: string;
+  iconSrc?: string;
+}
+
 const DEFAULT_VALUES: BuildConfig = {
   appName: '',
   packageName: '',
@@ -20,11 +27,16 @@ const DEFAULT_VALUES: BuildConfig = {
   buildAab: false,
 };
 
-export function BuildForm() {
+interface BuildFormProps {
+  onPreviewChange?: (state: PreviewState) => void;
+}
+
+export function BuildForm({ onPreviewChange }: BuildFormProps = {}) {
   const router = useRouter();
   const [form, setForm] = useState<BuildConfig>(DEFAULT_VALUES);
   const [errors, setErrors] = useState<Partial<Record<keyof BuildConfig, string>>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [iconObjectUrl, setIconObjectUrl] = useState<string | undefined>();
 
   const mutation = useMutation({
     mutationFn: createBuild,
@@ -44,7 +56,18 @@ export function BuildForm() {
   });
 
   const set = <K extends keyof BuildConfig>(key: K, value: BuildConfig[K]) => {
-    setForm((f) => ({ ...f, [key]: value }));
+    setForm((prev) => {
+      const next = { ...prev, [key]: value };
+      if (onPreviewChange) {
+        onPreviewChange({
+          url: String(next.websiteUrl || ''),
+          themeColor: String(next.themeColor || '#2563EB'),
+          appName: String(next.appName || ''),
+          iconSrc: iconObjectUrl,
+        });
+      }
+      return next;
+    });
     setErrors((e) => ({ ...e, [key]: undefined }));
   };
 
@@ -150,7 +173,20 @@ export function BuildForm() {
             label="App Icon"
             hint="512×512 PNG recommended"
             value={form.icon}
-            onChange={(f) => set('icon', f)}
+            onChange={(f) => {
+              if (iconObjectUrl) URL.revokeObjectURL(iconObjectUrl);
+              const objUrl = f ? URL.createObjectURL(f) : undefined;
+              setIconObjectUrl(objUrl);
+              set('icon', f);
+              if (onPreviewChange) {
+                onPreviewChange({
+                  url: form.websiteUrl,
+                  themeColor: form.themeColor,
+                  appName: form.appName,
+                  iconSrc: objUrl,
+                });
+              }
+            }}
           />
           <ImageDropzone
             label="Splash Screen"

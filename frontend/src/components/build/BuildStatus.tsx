@@ -5,6 +5,7 @@ import { getBuild, formatBytes, Build } from '@/lib/api';
 import { Download, CheckCircle2, XCircle, Loader2, Clock, RefreshCw } from 'lucide-react';
 import clsx from 'clsx';
 import Link from 'next/link';
+import { PhonePreview } from '@/components/ui/PhonePreview';
 
 const STATUS_CONFIG = {
   PENDING:  { label: 'Pending',  color: 'text-slate-500', bg: 'bg-slate-100', icon: Clock },
@@ -75,23 +76,33 @@ export function BuildStatus({ buildId }: { buildId: string }) {
         </span>
       </div>
 
-      {/* Download card */}
+      {/* Download card + phone preview */}
       {build.status === 'SUCCESS' && build.downloadUrl && (
-        <div className="card border-green-200 bg-green-50">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-semibold text-green-800">Your APK is ready!</h3>
-              {build.outputSize && (
-                <p className="text-sm text-green-600">Size: {formatBytes(build.outputSize)}</p>
-              )}
+        <div className="flex gap-8 items-start">
+          <div className="flex-1 min-w-0 space-y-4">
+            <div className="card border-green-200 bg-green-50">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-green-800">Your APK is ready!</h3>
+                  {build.outputSize && (
+                    <p className="text-sm text-green-600">Size: {formatBytes(build.outputSize)}</p>
+                  )}
+                </div>
+                <a
+                  href={build.downloadUrl}
+                  download
+                  className="btn-primary bg-green-600 hover:bg-green-700"
+                >
+                  <Download size={16} /> Download APK
+                </a>
+              </div>
             </div>
-            <a
-              href={build.downloadUrl}
-              download
-              className="btn-primary bg-green-600 hover:bg-green-700"
-            >
-              <Download size={16} /> Download APK
-            </a>
+          </div>
+          <div className="hidden lg:block flex-shrink-0">
+            <PhonePreview
+              url={build.websiteUrl}
+              appName={build.appName}
+            />
           </div>
         </div>
       )}

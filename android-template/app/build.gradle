@@ -18,10 +18,8 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            // For unsigned debug builds (CI), use debuggable = false but no signing config
-            signingConfig null
+            minifyEnabled false
+            signingConfig signingConfigs.debug
         }
         debug {
             applicationIdSuffix ".debug"

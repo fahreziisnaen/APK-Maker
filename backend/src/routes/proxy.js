@@ -51,9 +51,10 @@ router.get('/', async (req, res) => {
 
     // Inject at top of <head>:
     // 1. <base href> — relative URLs resolve to origin
-    // 2. Anti-framebusting
-    // 3. Hide scrollbars
-    // 4. Intercept link clicks → route through proxy so navigation keeps working
+    // 2. Hide scrollbars + drag cursor
+    // 3. Anti-framebusting
+    // 4. Link interceptor → all <a> navigations routed through proxy
+    // 5. Drag-to-scroll injected inside the page (so hover/click events still work normally)
     const injection =
       `<base href="${baseHref}">` +
       `<style>` +
@@ -61,10 +62,12 @@ router.get('/', async (req, res) => {
       `html,body{scrollbar-width:none;-ms-overflow-style:none}` +
       `</style>` +
       `<script>(function(){` +
+      // Anti-framebusting
       `try{` +
       `Object.defineProperty(window,'top',{get:function(){return window.self;}});` +
       `Object.defineProperty(window,'parent',{get:function(){return window.self;}});` +
       `}catch(e){}` +
+      // Link click interceptor — route <a> navigation through proxy
       `document.addEventListener('click',function(e){` +
       `var a=e.target.closest('a');` +
       `if(!a||!a.href)return;` +
@@ -74,6 +77,21 @@ router.get('/', async (req, res) => {
       `e.preventDefault();e.stopPropagation();` +
       `window.location.href='/api/proxy?url='+encodeURIComponent(url);` +
       `},true);` +
+      // Drag-to-scroll — runs inside page so all native events still fire
+      // Skips interactive elements so buttons/links still receive clicks
+      `var _dn=false,_sy=0,_sc=0,_mv=false;` +
+      `var _skip='a,button,input,select,textarea,[role="button"],[role="link"],[onclick],[tabindex]';` +
+      `document.addEventListener('mousedown',function(e){` +
+      `if(e.target.closest(_skip))return;` +
+      `_dn=true;_mv=false;_sy=e.clientY;_sc=window.scrollY;` +
+      `},true);` +
+      `document.addEventListener('mousemove',function(e){` +
+      `if(!_dn)return;` +
+      `var dy=e.clientY-_sy;` +
+      `if(!_mv&&Math.abs(dy)>4){_mv=true;}` +
+      `if(_mv){window.scrollTo(0,_sc-dy);}` +
+      `},true);` +
+      `document.addEventListener('mouseup',function(){_dn=false;},true);` +
       `})();</script>`;
 
     html = /<head[^>]*>/i.test(html)

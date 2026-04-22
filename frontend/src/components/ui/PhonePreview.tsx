@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Smartphone, RefreshCw, ExternalLink } from 'lucide-react';
 
 interface PhonePreviewProps {
@@ -22,20 +22,28 @@ function proxyUrl(url: string) {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
 }
 
+// iPhone 14 Pro Max proportions
+// Physical: 77.6 × 160.7 mm → ratio 1 : 2.071
+// Mockup  : 280 × 580 px
+const W = 280;
+const H = 580;
+const BEZEL = 10;
+const SCREEN_W = W - BEZEL * 2;   // 260
+const SCREEN_H = H - BEZEL * 2;   // 560
+const CORNER_OUTER = 46;
+const CORNER_SCREEN = 36;
+// Dynamic Island (pill)
+const DI_W = 80;
+const DI_H = 24;
+
 export function PhonePreview({ url }: PhonePreviewProps) {
   const [activeUrl, setActiveUrl] = useState('');
   const [iframeKey, setIframeKey] = useState(0);
   const [status, setStatus] = useState<'idle' | 'loading' | 'loaded'>('idle');
-  const [isDragging, setIsDragging] = useState(false);
-
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const timeoutRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
   const iframeRef   = useRef<HTMLIFrameElement>(null);
 
-  // Drag-to-scroll state (not React state — no re-renders needed)
-  const drag = useRef({ active: false, moved: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
-
-  // Debounce URL changes 900ms
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!isValidHttpUrl(url)) { setStatus('idle'); setActiveUrl(''); return; }
@@ -47,7 +55,6 @@ export function PhonePreview({ url }: PhonePreviewProps) {
     return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
   }, [url]);
 
-  // 15-second safety timeout
   useEffect(() => {
     if (status !== 'loading') return;
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -55,100 +62,50 @@ export function PhonePreview({ url }: PhonePreviewProps) {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, [iframeKey, status]);
 
-  // Release drag if mouse leaves window
-  useEffect(() => {
-    const up = () => { drag.current.active = false; setIsDragging(false); };
-    window.addEventListener('mouseup', up);
-    return () => window.removeEventListener('mouseup', up);
-  }, []);
-
   const reload = () => { setStatus('loading'); setIframeKey((k) => k + 1); };
-
-  // ── Drag handlers ────────────────────────────────────────────────────────────
-
-  const onMouseDown = useCallback((e: React.MouseEvent) => {
-    if (status !== 'loaded') return;
-    drag.current = { active: true, moved: false, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY };
-    setIsDragging(false);
-  }, [status]);
-
-  const onMouseMove = useCallback((e: React.MouseEvent) => {
-    const d = drag.current;
-    if (!d.active) return;
-
-    const dx = d.lastX - e.clientX;
-    const dy = d.lastY - e.clientY;
-    d.lastX = e.clientX;
-    d.lastY = e.clientY;
-
-    // Mark as drag after 5px movement
-    if (!d.moved && (Math.abs(e.clientX - d.startX) > 5 || Math.abs(e.clientY - d.startY) > 5)) {
-      d.moved = true;
-      setIsDragging(true);
-    }
-
-    if (d.moved) {
-      try { iframeRef.current?.contentWindow?.scrollBy(dx, dy); } catch {}
-    }
-  }, []);
-
-  const onMouseUp = useCallback((e: React.MouseEvent) => {
-    const d = drag.current;
-    if (!d.active) return;
-    d.active = false;
-    setIsDragging(false);
-
-    // Short tap with no movement → forward click to element under cursor
-    if (!d.moved) {
-      try {
-        const iframeDoc = iframeRef.current?.contentDocument;
-        const iframeRect = iframeRef.current?.getBoundingClientRect();
-        if (iframeDoc && iframeRect) {
-          const x = e.clientX - iframeRect.left;
-          const y = e.clientY - iframeRect.top;
-          const el = iframeDoc.elementFromPoint(x, y) as HTMLElement | null;
-          el?.click();
-        }
-      } catch {}
-    }
-  }, []);
 
   return (
     <div className="flex flex-col items-center gap-3">
       <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Live Preview</p>
 
-      {/* ── Phone shell ──────────────────────────────────── */}
-      <div className="relative select-none" style={{ width: 260, height: 534 }}>
+      {/* ── iPhone 14 Pro Max shell ─────────────────────────── */}
+      <div className="relative select-none" style={{ width: W, height: H }}>
 
         {/* Body */}
-        <div className="absolute inset-0 rounded-[44px] shadow-2xl"
-          style={{ background: '#1a1a1a', border: '2px solid #2e2e2e' }} />
+        <div className="absolute inset-0"
+          style={{ borderRadius: CORNER_OUTER, background: '#1c1c1e', border: '2px solid #3a3a3c', boxShadow: '0 25px 60px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08)' }} />
 
-        {/* Left buttons */}
-        <div className="absolute rounded-l-sm" style={{ left: -4, top: 90,  width: 3, height: 28, background: '#444' }} />
-        <div className="absolute rounded-l-sm" style={{ left: -4, top: 128, width: 3, height: 44, background: '#444' }} />
-        <div className="absolute rounded-l-sm" style={{ left: -4, top: 180, width: 3, height: 44, background: '#444' }} />
-        {/* Right button */}
-        <div className="absolute rounded-r-sm" style={{ right: -4, top: 130, width: 3, height: 64, background: '#444' }} />
+        {/* Left — Action button + Volume up + Volume down */}
+        <div className="absolute" style={{ left: -3, top: 100, width: 3, height: 32, borderRadius: '2px 0 0 2px', background: '#3a3a3c' }} />
+        <div className="absolute" style={{ left: -3, top: 148, width: 3, height: 60, borderRadius: '2px 0 0 2px', background: '#3a3a3c' }} />
+        <div className="absolute" style={{ left: -3, top: 218, width: 3, height: 60, borderRadius: '2px 0 0 2px', background: '#3a3a3c' }} />
+        {/* Right — Power button */}
+        <div className="absolute" style={{ right: -3, top: 160, width: 3, height: 80, borderRadius: '0 2px 2px 0', background: '#3a3a3c' }} />
 
         {/* Screen */}
         <div className="absolute overflow-hidden"
-          style={{ top: 10, left: 10, right: 10, bottom: 10, borderRadius: 36, background: '#fff' }}>
+          style={{ top: BEZEL, left: BEZEL, width: SCREEN_W, height: SCREEN_H, borderRadius: CORNER_SCREEN, background: '#000' }}>
 
-          {/* Content area — fullscreen */}
-          <div className="absolute inset-0 overflow-hidden">
+          {/* Dynamic Island */}
+          <div className="absolute z-20" style={{
+            top: 10,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: DI_W,
+            height: DI_H,
+            borderRadius: DI_H / 2,
+            background: '#000',
+          }} />
 
-            {/* Idle */}
+          {/* Content */}
+          <div className="absolute inset-0">
             {status === 'idle' && (
               <div className="flex flex-col items-center justify-center h-full gap-3 bg-slate-50 px-6 text-center">
                 <Smartphone size={36} className="text-slate-300" />
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Enter your website URL to see a preview
-                </p>
+                <p className="text-xs text-slate-400 leading-relaxed">Enter your website URL to see a preview</p>
               </div>
             )}
 
-            {/* Loading spinner */}
             {status === 'loading' && (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-white z-10 gap-2">
                 <div className="h-7 w-7 rounded-full border-2 border-slate-200 border-t-blue-500 animate-spin" />
@@ -156,7 +113,6 @@ export function PhonePreview({ url }: PhonePreviewProps) {
               </div>
             )}
 
-            {/* Iframe */}
             {(status === 'loading' || status === 'loaded') && activeUrl && (
               <iframe
                 ref={iframeRef}
@@ -165,18 +121,7 @@ export function PhonePreview({ url }: PhonePreviewProps) {
                 title="Website preview"
                 onLoad={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); setStatus('loaded'); }}
                 className="absolute inset-0 w-full h-full border-0"
-                style={{ opacity: status === 'loaded' ? 1 : 0, pointerEvents: 'none' }}
-              />
-            )}
-
-            {/* Drag overlay — sits above iframe, intercepts mouse for drag-scroll */}
-            {status === 'loaded' && (
-              <div
-                className="absolute inset-0 z-20"
-                style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
-                onMouseDown={onMouseDown}
-                onMouseMove={onMouseMove}
-                onMouseUp={onMouseUp}
+                style={{ opacity: status === 'loaded' ? 1 : 0 }}
               />
             )}
           </div>
@@ -184,7 +129,7 @@ export function PhonePreview({ url }: PhonePreviewProps) {
 
         {/* Home indicator */}
         <div className="absolute rounded-full"
-          style={{ bottom: 16, left: '50%', transform: 'translateX(-50%)', width: 80, height: 4, background: '#444' }} />
+          style={{ bottom: 14, left: '50%', transform: 'translateX(-50%)', width: 100, height: 4, background: '#48484a' }} />
       </div>
 
       {/* Controls */}

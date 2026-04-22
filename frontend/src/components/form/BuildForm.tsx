@@ -1,38 +1,39 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
-import { Loader2, Zap, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, Zap, ChevronDown, ChevronUp, X, Smartphone } from 'lucide-react';
 import { createBuild, BuildConfig } from '@/lib/api';
 import { ImageDropzone } from './ImageDropzone';
 import clsx from 'clsx';
 
-function MiniPhonePreview({ html }: { html: string }) {
+// iPhone 14 Pro Max proportions for the modal phone mockup
+function OfflinePhoneMockup({ html }: { html: string }) {
+  const W = 300, H = 622, B = 10, CR_OUT = 46, CR_SCR = 36;
   return (
-    <div className="relative select-none flex-shrink-0" style={{ width: 160, height: 320 }}>
-      {/* Body */}
-      <div className="absolute inset-0 rounded-[32px] shadow-xl"
-        style={{ background: '#1a1a1a', border: '2px solid #2e2e2e' }} />
+    <div className="relative select-none flex-shrink-0" style={{ width: W, height: H }}>
+      <div className="absolute inset-0" style={{ borderRadius: CR_OUT, background: '#1c1c1e', border: '2px solid #3a3a3c', boxShadow: '0 25px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08)' }} />
       {/* Left buttons */}
-      <div className="absolute rounded-l-sm" style={{ left: -3, top: 56, width: 2, height: 18, background: '#444' }} />
-      <div className="absolute rounded-l-sm" style={{ left: -3, top: 80, width: 2, height: 28, background: '#444' }} />
+      <div className="absolute" style={{ left: -3, top: 108, width: 3, height: 34, borderRadius: '2px 0 0 2px', background: '#3a3a3c' }} />
+      <div className="absolute" style={{ left: -3, top: 158, width: 3, height: 64, borderRadius: '2px 0 0 2px', background: '#3a3a3c' }} />
+      <div className="absolute" style={{ left: -3, top: 234, width: 3, height: 64, borderRadius: '2px 0 0 2px', background: '#3a3a3c' }} />
       {/* Right button */}
-      <div className="absolute rounded-r-sm" style={{ right: -3, top: 80, width: 2, height: 40, background: '#444' }} />
+      <div className="absolute" style={{ right: -3, top: 172, width: 3, height: 86, borderRadius: '0 2px 2px 0', background: '#3a3a3c' }} />
       {/* Screen */}
-      <div className="absolute overflow-hidden"
-        style={{ top: 8, left: 8, right: 8, bottom: 8, borderRadius: 24, background: '#fff' }}>
+      <div className="absolute overflow-hidden" style={{ top: B, left: B, right: B, bottom: B, borderRadius: CR_SCR, background: '#000' }}>
+        {/* Dynamic Island */}
+        <div className="absolute z-10" style={{ top: 11, left: '50%', transform: 'translateX(-50%)', width: 86, height: 26, borderRadius: 13, background: '#000' }} />
         <iframe
           srcDoc={html}
           title="Offline page preview"
-          className="w-full h-full border-0"
+          className="absolute inset-0 w-full h-full border-0"
           style={{ pointerEvents: 'none' }}
           sandbox="allow-scripts"
         />
       </div>
       {/* Home indicator */}
-      <div className="absolute rounded-full"
-        style={{ bottom: 10, left: '50%', transform: 'translateX(-50%)', width: 48, height: 3, background: '#444' }} />
+      <div className="absolute rounded-full" style={{ bottom: 14, left: '50%', transform: 'translateX(-50%)', width: 106, height: 4, background: '#48484a' }} />
     </div>
   );
 }
@@ -46,6 +47,8 @@ function OfflinePageEditor({
   onChange: (v: string) => void;
   onReset: () => void;
 }) {
+  const [showModal, setShowModal] = useState(false);
+
   const rendered = useMemo(() => {
     const color = /^#[0-9a-fA-F]{6}$/.test(themeColor) ? themeColor : '#2563EB';
     return html
@@ -53,40 +56,61 @@ function OfflinePageEditor({
       .replace(/\{\{THEME_COLOR\}\}/g, color);
   }, [html, appName, themeColor]);
 
+  // Close modal on Escape
+  useEffect(() => {
+    if (!showModal) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') setShowModal(false); };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [showModal]);
+
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
         <label className="label mb-0" htmlFor="offlinePageHtml">Offline Page HTML</label>
-        <button type="button" className="text-xs text-brand-600 hover:underline" onClick={onReset}>
-          Reset to default
-        </button>
-      </div>
-
-      <div className="flex gap-4 items-start">
-        {/* Textarea */}
-        <div className="flex-1 min-w-0">
-          <textarea
-            id="offlinePageHtml"
-            className="input-base font-mono text-xs"
-            rows={14}
-            value={html}
-            onChange={(e) => onChange(e.target.value)}
-            spellCheck={false}
-          />
-          <p className="mt-1 text-xs text-slate-400">
-            Gunakan{' '}
-            <code className="bg-slate-200 px-1 rounded">{'{{APP_NAME}}'}</code> dan{' '}
-            <code className="bg-slate-200 px-1 rounded">{'{{THEME_COLOR}}'}</code>{' '}
-            sebagai placeholder dinamis.
-          </p>
-        </div>
-
-        {/* Live phone preview */}
-        <div className="hidden sm:flex flex-col items-center gap-1 flex-shrink-0">
-          <p className="text-xs text-slate-400">Preview</p>
-          <MiniPhonePreview html={rendered} />
+        <div className="flex items-center gap-3">
+          <button type="button" className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-700 transition-colors"
+            onClick={() => setShowModal(true)}>
+            <Smartphone size={12} /> Preview
+          </button>
+          <button type="button" className="text-xs text-brand-600 hover:underline" onClick={onReset}>
+            Reset to default
+          </button>
         </div>
       </div>
+
+      <textarea
+        id="offlinePageHtml"
+        className="input-base font-mono text-xs"
+        rows={12}
+        value={html}
+        onChange={(e) => onChange(e.target.value)}
+        spellCheck={false}
+      />
+      <p className="mt-1 text-xs text-slate-400">
+        Gunakan{' '}
+        <code className="bg-slate-200 px-1 rounded">{'{{APP_NAME}}'}</code> dan{' '}
+        <code className="bg-slate-200 px-1 rounded">{'{{THEME_COLOR}}'}</code>{' '}
+        sebagai placeholder dinamis.
+      </p>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.7)' }}
+          onClick={() => setShowModal(false)}>
+          <div onClick={(e) => e.stopPropagation()} className="flex flex-col items-center gap-4">
+            <div className="flex items-center justify-between w-full">
+              <p className="text-white font-semibold text-sm">Offline Page Preview</p>
+              <button onClick={() => setShowModal(false)}
+                className="text-white/70 hover:text-white transition-colors">
+                <X size={20} />
+              </button>
+            </div>
+            <OfflinePhoneMockup html={rendered} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

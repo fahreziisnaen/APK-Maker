@@ -82,8 +82,6 @@ async function processBuild(job) {
     await appendLog('Copying Android template...');
     fs.mkdirSync(tmpDir, { recursive: true });
     copyDirSync(TEMPLATE_DIR, tmpDir);
-    // Ensure gradlew is executable (copyFileSync doesn't preserve the execute bit)
-    fs.chmodSync(path.join(tmpDir, 'gradlew'), 0o755);
 
     // Step 2: Inject config
     await appendLog('Injecting configuration...');
@@ -253,16 +251,16 @@ async function injectAssets(projectDir, config, appendLog) {
 
 function runGradle(projectDir, task, appendLog, buildId) {
   return new Promise((resolve, reject) => {
-    const gradlew = process.platform === 'win32' ? 'gradlew.bat' : './gradlew';
+    // Use system-installed gradle directly — avoids gradlew wrapper jar issues
+    const gradleCmd = 'gradle';
     const args = [task, '--no-daemon', '--stacktrace', `-PbuildId=${buildId}`];
 
     const env = {
       ...process.env,
       ANDROID_SDK_ROOT: process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME,
-      JAVA_HOME: process.env.JAVA_HOME,
     };
 
-    const proc = spawn(gradlew, args, { cwd: projectDir, env, shell: process.platform === 'win32' });
+    const proc = spawn(gradleCmd, args, { cwd: projectDir, env });
     const timeout = setTimeout(() => {
       proc.kill('SIGTERM');
       reject(new Error('Gradle build timed out'));

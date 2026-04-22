@@ -1,12 +1,20 @@
 FROM eclipse-temurin:17-jdk
 
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
-ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
+ENV GRADLE_VERSION=8.6
+ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:/opt/gradle/bin:${PATH}"
 
-# Install curl/unzip for SDK tools, then Node 20 via NodeSource
+# Install curl/unzip, then Node 20 via NodeSource
 RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+
+# Install Gradle 8.6 directly (avoids gradlew wrapper jar dependency)
+RUN curl -sSL "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
+        -o /tmp/gradle.zip && \
+    unzip -q /tmp/gradle.zip -d /opt && \
+    mv "/opt/gradle-${GRADLE_VERSION}" /opt/gradle && \
+    rm /tmp/gradle.zip
 
 # Install Android SDK command-line tools
 RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" && \
@@ -15,7 +23,7 @@ RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" && \
     mv "${ANDROID_SDK_ROOT}/cmdline-tools/cmdline-tools" "${ANDROID_SDK_ROOT}/cmdline-tools/latest" && \
     rm /tmp/cmdtools.zip
 
-# Pre-accept all Android SDK licenses by writing license hash files directly
+# Pre-accept all Android SDK licenses
 RUN mkdir -p "${ANDROID_SDK_ROOT}/licenses" && \
     echo "24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n82ae8b84d98d2f62c3c6b1e05df74c5a5b4c7b92" \
         > "${ANDROID_SDK_ROOT}/licenses/android-sdk-license" && \

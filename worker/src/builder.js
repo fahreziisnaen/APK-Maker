@@ -268,6 +268,8 @@ function runGradle(projectDir, task, appendLog, buildId) {
       reject(new Error('Gradle build timed out'));
     }, parseInt(process.env.BUILD_TIMEOUT_MS) || 300_000);
 
+    const stderrLines = [];
+
     proc.stdout.on('data', (data) => {
       const lines = data.toString().split('\n').filter(l => l.trim());
       lines.forEach(line => appendLog(line).catch(() => {}));
@@ -275,13 +277,22 @@ function runGradle(projectDir, task, appendLog, buildId) {
 
     proc.stderr.on('data', (data) => {
       const lines = data.toString().split('\n').filter(l => l.trim());
-      lines.forEach(line => appendLog(`[stderr] ${line}`).catch(() => {}));
+      lines.forEach(line => {
+        stderrLines.push(line);
+        appendLog(`[stderr] ${line}`).catch(() => {});
+      });
     });
 
     proc.on('close', (code) => {
       clearTimeout(timeout);
-      if (code === 0) resolve();
-      else reject(new Error(`Gradle exited with code ${code}`));
+      if (code === 0) { resolve(); return; }
+
+      // Extract "What went wrong" for a meaningful error message
+      const wwIdx = stderrLines.findIndex(l => l.includes('What went wrong'));
+      const summary = wwIdx >= 0
+        ? stderrLines.slice(wwIdx + 1, wwIdx + 6).join(' | ').trim()
+        : `Gradle exited with code ${code}`;
+      reject(new Error(summary || `Gradle exited with code ${code}`));
     });
 
     proc.on('error', (err) => {

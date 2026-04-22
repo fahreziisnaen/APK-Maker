@@ -8,6 +8,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+# Baked in at build time — Next.js rewrite destination dievaluasi saat `next build`
+ENV INTERNAL_API_URL=http://backend:4001
 RUN npm run build
 
 FROM node:20-alpine AS runner

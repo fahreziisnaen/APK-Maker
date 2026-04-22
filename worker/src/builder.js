@@ -82,6 +82,9 @@ async function processBuild(job) {
     await appendLog('Copying Android template...');
     fs.mkdirSync(tmpDir, { recursive: true });
     copyDirSync(TEMPLATE_DIR, tmpDir);
+    // Create local.properties so AGP can find the Android SDK
+    const sdkDir = process.env.ANDROID_SDK_ROOT || process.env.ANDROID_HOME || '/opt/android-sdk';
+    fs.writeFileSync(path.join(tmpDir, 'local.properties'), `sdk.dir=${sdkDir}\n`);
 
     // Step 2: Inject config
     await appendLog('Injecting configuration...');

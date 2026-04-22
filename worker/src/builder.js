@@ -134,10 +134,12 @@ async function processBuild(job) {
 async function injectConfig(projectDir, config, buildId, appendLog) {
   const appModuleDir = path.join(projectDir, 'app');
 
-  // 1. Rename package in build.gradle
+  // 1. Update namespace and applicationId in build.gradle
+  // AGP 8.x: namespace replaces the package attribute in AndroidManifest.xml
   replaceInFile(
     path.join(appModuleDir, 'build.gradle'),
     [
+      [/namespace\s+"[^"]+"/g, `namespace "${config.packageName}"`],
       [/applicationId\s+"[^"]+"/g, `applicationId "${config.packageName}"`],
       [/versionName\s+"[^"]+"/g, `versionName "1.0"`],
     ]
@@ -177,11 +179,8 @@ async function injectConfig(projectDir, config, buildId, appendLog) {
   const javaDir = path.join(appModuleDir, 'src/main/java');
   updatePackageDeclarations(javaDir, config.packageName);
 
-  // 6. AndroidManifest.xml
-  const manifestPath = path.join(appModuleDir, 'src/main/AndroidManifest.xml');
-  replaceInFile(manifestPath, [
-    [/package="[^"]+"/g, `package="${config.packageName}"`],
-  ]);
+  // 6. AndroidManifest.xml — no package attribute needed in AGP 8.x;
+  //    namespace is set in build.gradle above
 
   // 7. Feature flags via res/values/config.xml
   const configXmlPath = path.join(appModuleDir, 'src/main/res/values/config.xml');

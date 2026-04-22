@@ -27,6 +27,9 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import java.io.File;
@@ -64,6 +67,8 @@ public class MainActivity extends AppCompatActivity {
         enableOfflineFallback = getResources().getBoolean(R.bool.enable_offline_fallback);
         enablePushNotifications = getResources().getBoolean(R.bool.enable_push_notifications);
 
+        hideSystemUI();
+
         progressBar = findViewById(R.id.progressBar);
         swipeRefreshLayout = findViewById(R.id.swipeRefreshLayout);
         webView = findViewById(R.id.webView);
@@ -76,6 +81,19 @@ public class MainActivity extends AppCompatActivity {
         } else {
             webView.loadUrl(websiteUrl);
         }
+    }
+
+    private void hideSystemUI() {
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        WindowInsetsControllerCompat ctrl = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+        ctrl.hide(WindowInsetsCompat.Type.systemBars());
+        ctrl.setSystemBarsBehavior(WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if (hasFocus) hideSystemUI();
     }
 
     @SuppressLint("SetJavaScriptEnabled")

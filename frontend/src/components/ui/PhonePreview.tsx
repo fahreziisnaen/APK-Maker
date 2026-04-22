@@ -158,6 +158,13 @@ export function PhonePreview({ url }: PhonePreviewProps) {
           </a>
         </div>
       )}
+
+      {activeUrl && (
+        <p className="text-xs text-slate-400 text-center leading-relaxed" style={{ maxWidth: 260 }}>
+          Preview hanya menampilkan tampilan — fitur interaktif (login, fetch API) mungkin tidak berfungsi.
+          APK akan bekerja normal.
+        </p>
+      )}
     </div>
   );
 }

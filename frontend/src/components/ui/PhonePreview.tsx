@@ -22,19 +22,22 @@ function proxyUrl(url: string) {
   return `/api/proxy?url=${encodeURIComponent(url)}`;
 }
 
-// iPhone 14 Pro Max proportions
-// Physical: 77.6 × 160.7 mm → ratio 1 : 2.071
-// Mockup  : 280 × 580 px
+// iPhone 14 Pro Max proportions: 430 × 932 logical px, ratio 1:2.168
+// Mockup shell: 280 × 607px  →  screen area: 260 × 587px
 const W = 280;
-const H = 580;
+const H = 607;
 const BEZEL = 10;
-const SCREEN_W = W - BEZEL * 2;   // 260
-const SCREEN_H = H - BEZEL * 2;   // 560
+const SCREEN_W = W - BEZEL * 2;        // 260 px (visible)
+const SCREEN_H = H - BEZEL * 2;        // 587 px (visible)
 const CORNER_OUTER = 46;
 const CORNER_SCREEN = 36;
-// Dynamic Island (pill)
+// Dynamic Island
 const DI_W = 80;
 const DI_H = 24;
+// Render the iframe at real iPhone 14 Pro Max logical width, then scale down
+const RENDER_W = 430;
+const SCALE = SCREEN_W / RENDER_W;                    // ≈ 0.605
+const RENDER_H = Math.round(SCREEN_H / SCALE);        // ≈ 970
 
 export function PhonePreview({ url }: PhonePreviewProps) {
   const [activeUrl, setActiveUrl] = useState('');
@@ -120,8 +123,17 @@ export function PhonePreview({ url }: PhonePreviewProps) {
                 src={proxyUrl(activeUrl)}
                 title="Website preview"
                 onLoad={() => { if (timeoutRef.current) clearTimeout(timeoutRef.current); setStatus('loaded'); }}
-                className="absolute inset-0 w-full h-full border-0"
-                style={{ opacity: status === 'loaded' ? 1 : 0 }}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: RENDER_W,
+                  height: RENDER_H,
+                  border: 'none',
+                  transformOrigin: 'top left',
+                  transform: `scale(${SCALE})`,
+                  opacity: status === 'loaded' ? 1 : 0,
+                }}
               />
             )}
           </div>

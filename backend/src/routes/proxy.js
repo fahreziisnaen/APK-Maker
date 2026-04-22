@@ -46,8 +46,9 @@ router.get('/', async (req, res) => {
       : finalUrl.pathname.replace(/\/[^/]*$/, '/');
     const baseHref = `${finalUrl.protocol}//${finalUrl.host}${pathDir}`;
 
-    // Strip CSP meta tags (they block inline scripts/styles from the original page)
+    // Strip CSP meta tags and override viewport to 430px (iPhone 14 Pro Max logical width)
     html = html.replace(/<meta[^>]+http-equiv=["']?Content-Security-Policy["']?[^>]*>/gi, '');
+    html = html.replace(/<meta[^>]+name=["']?viewport["']?[^>]*>/gi, '');
 
     // Inject at top of <head>:
     // 1. <base href> — relative URLs resolve to origin
@@ -56,6 +57,7 @@ router.get('/', async (req, res) => {
     // 4. Link interceptor → all <a> navigations routed through proxy
     // 5. Drag-to-scroll injected inside the page (so hover/click events still work normally)
     const injection =
+      `<meta name="viewport" content="width=430,initial-scale=1,maximum-scale=1,user-scalable=no">` +
       `<base href="${baseHref}">` +
       `<style>` +
       `::-webkit-scrollbar{display:none}` +

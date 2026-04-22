@@ -47,6 +47,7 @@ services:
     environment:
       - PORT=4000
       - NEXT_PUBLIC_API_URL=http://localhost:4001
+      - INTERNAL_API_URL=http://backend:4001
     volumes:
       - ./frontend:/app
       - /app/node_modules

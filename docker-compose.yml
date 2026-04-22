@@ -15,9 +15,8 @@ services:
       - REDIS_URL=redis://redis:6379
       - DATABASE_URL=file:/app/data/apkmaker.db
     volumes:
-      - ./backend:/app
       - apk_storage:/app/storage
-      - /app/node_modules
+      - backend_data:/app/data
     depends_on:
       - redis
 
@@ -30,12 +29,10 @@ services:
       - ANDROID_SDK_ROOT=/opt/android-sdk
       - TEMPLATE_DIR=/app/android-template
     volumes:
-      - ./worker:/app
       - ./android-template:/app/android-template:ro
       - apk_storage:/app/storage
       - android_sdk:/opt/android-sdk
       - gradle_cache:/root/.gradle
-      - /app/node_modules
     depends_on:
       - redis
       - backend
@@ -48,15 +45,12 @@ services:
       - PORT=4000
       - NEXT_PUBLIC_API_URL=http://localhost:4001
       - INTERNAL_API_URL=http://backend:4001
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
     depends_on:
       - backend
 
 volumes:
   redis_data:
   apk_storage:
+  backend_data:
   android_sdk:
   gradle_cache:

@@ -8,6 +8,13 @@ const { prisma } = require('../lib/prisma');
 const { enqueueBuild } = require('../lib/queue');
 const { validateBuildInput } = require('../utils/validate');
 const { logger } = require('../utils/logger');
+const { createRateLimiter } = require('../middleware/rateLimiter');
+
+const buildRateLimiter = createRateLimiter({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX) || 10,
+  message: { error: 'Too many build requests, please try again later.' },
+});
 
 const router = express.Router();
 
@@ -27,7 +34,7 @@ const upload = multer({
 });
 
 // POST /api/builds — create & enqueue a new build
-router.post('/', upload.fields([
+router.post('/', buildRateLimiter, upload.fields([
   { name: 'icon', maxCount: 1 },
   { name: 'splash', maxCount: 1 },
 ]), async (req, res) => {

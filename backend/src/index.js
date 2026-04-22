@@ -5,7 +5,6 @@ const helmet = require('helmet');
 const path = require('path');
 const fs = require('fs');
 const { logger } = require('./utils/logger');
-const { createRateLimiter } = require('./middleware/rateLimiter');
 const buildsRouter = require('./routes/builds');
 const eventsRouter = require('./routes/events');
 
@@ -28,13 +27,6 @@ app.use(cors({
 // Body parsing
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
-
-// Rate limiting
-app.use('/api/builds', createRateLimiter({
-  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
-  max: parseInt(process.env.RATE_LIMIT_MAX) || 10,
-  message: { error: 'Too many build requests, please try again later.' },
-}));
 
 // Routes
 app.use('/api/builds', buildsRouter);

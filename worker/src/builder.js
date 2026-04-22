@@ -82,6 +82,8 @@ async function processBuild(job) {
     await appendLog('Copying Android template...');
     fs.mkdirSync(tmpDir, { recursive: true });
     copyDirSync(TEMPLATE_DIR, tmpDir);
+    // Ensure gradlew is executable (copyFileSync doesn't preserve the execute bit)
+    fs.chmodSync(path.join(tmpDir, 'gradlew'), 0o755);
 
     // Step 2: Inject config
     await appendLog('Injecting configuration...');

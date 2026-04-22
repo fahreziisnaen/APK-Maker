@@ -22,16 +22,14 @@ services:
 
   worker:
     build: ./worker
-    env_file: ./backend/.env
     environment:
       - REDIS_URL=redis://redis:6379
-      - DATABASE_URL=file:/app/data/apkmaker.db
       - ANDROID_SDK_ROOT=/opt/android-sdk
       - TEMPLATE_DIR=/app/android-template
+      - BACKEND_INTERNAL_URL=http://backend:4001
     volumes:
       - ./android-template:/app/android-template:ro
       - apk_storage:/app/storage
-      - backend_data:/app/data
       - android_sdk:/opt/android-sdk
       - gradle_cache:/root/.gradle
     depends_on:

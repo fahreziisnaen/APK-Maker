@@ -3,7 +3,10 @@ FROM eclipse-temurin:17-jdk
 ENV ANDROID_SDK_ROOT=/opt/android-sdk
 ENV PATH="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin:${ANDROID_SDK_ROOT}/platform-tools:${PATH}"
 
-RUN apt-get update && apt-get install -y curl unzip nodejs npm && rm -rf /var/lib/apt/lists/*
+# Install curl/unzip for SDK tools, then Node 20 via NodeSource
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
 
 # Install Android SDK command-line tools
 RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" && \
@@ -13,7 +16,6 @@ RUN mkdir -p "${ANDROID_SDK_ROOT}/cmdline-tools" && \
     rm /tmp/cmdtools.zip
 
 # Pre-accept all Android SDK licenses by writing license hash files directly
-# (more reliable than `yes | sdkmanager --licenses` in non-interactive Docker builds)
 RUN mkdir -p "${ANDROID_SDK_ROOT}/licenses" && \
     echo "24333f8a63b6825ea9c5514f83c2829b004d1fee\nd56f5187479451eabf01fb78af6dfcb131a6481e\n82ae8b84d98d2f62c3c6b1e05df74c5a5b4c7b92" \
         > "${ANDROID_SDK_ROOT}/licenses/android-sdk-license" && \
@@ -32,6 +34,5 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
-RUN npx prisma generate
 
 CMD ["node", "src/index.js"]

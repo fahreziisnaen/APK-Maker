@@ -10,15 +10,39 @@
 
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
 const { execFile, spawn } = require('child_process');
 const { promisify } = require('util');
 const os = require('os');
-const { PrismaClient } = require('@prisma/client');
 const { logger } = require('./utils/logger');
 const { publishLog, publishStatus } = require('./publisher');
 
 const execFileAsync = promisify(execFile);
-const prisma = new PrismaClient();
+
+const BACKEND_URL = process.env.BACKEND_INTERNAL_URL || 'http://backend:4001';
+
+function patchBuild(buildId, body) {
+  return new Promise((resolve, reject) => {
+    const data = JSON.stringify(body);
+    const url = new URL(`/api/builds/${buildId}/worker`, BACKEND_URL);
+    const req = http.request({
+      hostname: url.hostname,
+      port: url.port || 4001,
+      path: url.pathname,
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) },
+    }, (res) => {
+      res.resume();
+      res.on('end', () => resolve());
+    });
+    req.on('error', (err) => {
+      logger.warn('patchBuild HTTP error', { buildId, error: err.message });
+      resolve(); // non-fatal
+    });
+    req.write(data);
+    req.end();
+  });
+}
 
 const TEMPLATE_DIR = process.env.TEMPLATE_DIR || path.resolve(__dirname, '../../android-template');
 const STORAGE_DIR = path.resolve(process.env.STORAGE_DIR || '../backend/storage');
@@ -46,18 +70,12 @@ async function processBuild(job) {
     // Push to SSE clients via Redis pub/sub
     publishLog(buildId, logLine).catch(() => {});
 
-    // Append to DB logs (keep last 200 lines)
-    try {
-      const build = await prisma.build.findUnique({ where: { id: buildId }, select: { logs: true } });
-      const lines = (build?.logs || '').split('\n').filter(Boolean);
-      lines.push(logLine);
-      const trimmed = lines.slice(-200).join('\n');
-      await prisma.build.update({ where: { id: buildId }, data: { logs: trimmed } });
-    } catch { /* non-fatal */ }
+    // Append to DB logs via backend API
+    await patchBuild(buildId, { log: logLine });
   };
 
   try {
-    await prisma.build.update({ where: { id: buildId }, data: { status: 'BUILDING' } });
+    await patchBuild(buildId, { status: 'BUILDING' });
     await appendLog('Build started');
 
     // Step 1: Copy template
@@ -92,31 +110,19 @@ async function processBuild(job) {
     const outputSize = fs.statSync(destPath).size;
     const relativePath = path.join('apks', filename);
 
-    await prisma.build.update({
-      where: { id: buildId },
-      data: {
-        status: 'SUCCESS',
-        outputPath: relativePath,
-        outputSize,
-      },
-    });
+    await patchBuild(buildId, { status: 'SUCCESS', outputPath: relativePath, outputSize });
 
     await appendLog(`Build succeeded! Output: ${filename} (${(outputSize / 1024 / 1024).toFixed(2)} MB)`);
     publishStatus(buildId, 'SUCCESS').catch(() => {});
 
   } catch (err) {
     logger.error('Build failed', { buildId, error: err.message });
-    await prisma.build.update({
-      where: { id: buildId },
-      data: { status: 'FAILED', errorMessage: err.message },
-    }).catch(() => {});
+    await patchBuild(buildId, { status: 'FAILED', errorMessage: err.message });
     await appendLog(`ERROR: ${err.message}`).catch(() => {});
     publishStatus(buildId, 'FAILED').catch(() => {});
     throw err;
   } finally {
-    // Cleanup temp dir
     try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch {}
-    await prisma.$disconnect();
   }
 }
 

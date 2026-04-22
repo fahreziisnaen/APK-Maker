@@ -168,6 +168,35 @@ router.get('/:id/download', async (req, res) => {
   }
 });
 
+// PATCH /api/builds/:id/worker — internal endpoint used by the worker service
+// to update build state (status, logs, result). No public auth needed because
+// this route is only reachable from inside the Docker network.
+router.patch('/:id/worker', async (req, res) => {
+  try {
+    const { status, log, errorMessage, outputPath, outputSize } = req.body;
+    const data = {};
+
+    if (status !== undefined) data.status = status;
+    if (errorMessage !== undefined) data.errorMessage = errorMessage;
+    if (outputPath !== undefined) data.outputPath = outputPath;
+    if (outputSize !== undefined) data.outputSize = outputSize;
+
+    if (log !== undefined) {
+      // Append log line to existing logs, keep last 200 lines
+      const build = await prisma.build.findUnique({ where: { id: req.params.id }, select: { logs: true } });
+      const lines = (build?.logs || '').split('\n').filter(Boolean);
+      lines.push(log);
+      data.logs = lines.slice(-200).join('\n');
+    }
+
+    await prisma.build.update({ where: { id: req.params.id }, data });
+    res.json({ ok: true });
+  } catch (err) {
+    logger.error('Worker update failed', { error: err.message });
+    res.status(500).json({ error: 'Failed to update build' });
+  }
+});
+
 // DELETE /api/builds/:id — clean up a build
 router.delete('/:id', async (req, res) => {
   try {
